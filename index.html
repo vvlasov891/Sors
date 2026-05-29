@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Игровой портал - Вход</title>
-    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython_stdlib.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         * {
@@ -99,10 +97,12 @@
             background: #c0392b;
         }
         
-        #g_id_signin {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
+        .login-section {
+            display: block;
+        }
+        
+        .login-section.hidden {
+            display: none;
         }
         
         .loading {
@@ -120,23 +120,27 @@
     <div class="container">
         <div class="logo">🎮</div>
         <h1>Игровой портал</h1>
-        <p>Войдите через Google для доступа к играм</p>
         
-        <!-- Google Sign-In кнопка -->
-        <div id="g_id_onload"
-             data-client_id="492984680452-38qrkmefqd8ilc2fuda0h2t8jc8cf0qr.apps.googleusercontent.com"
-             data-callback="handleCredentialResponse"
-             data-auto_prompt="false">
+        <!-- Секция логина -->
+        <div class="login-section" id="loginSection">
+            <p>Войдите через Google для доступа к играм</p>
+            
+            <!-- Google Sign-In кнопка -->
+            <div id="g_id_onload"
+                 data-client_id="492984680452-38qrkmefqd8ilc2fuda0h2t8jc8cf0qr.apps.googleusercontent.com"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard"></div>
+            
+            <div class="loading" id="loading">Выполняется вход...</div>
         </div>
-        <div class="g_id_signin" data-type="standard"></div>
         
-        <div class="loading" id="loading">Загрузка...</div>
-        
-        <!-- Профиль пользователя -->
+        <!-- Секция профиля (изначально скрыта) -->
         <div class="user-info" id="userInfo">
             <img class="avatar" id="avatar" src="" alt="Avatar">
             <div class="email" id="email"></div>
-            <div id="name" style="color: #333; margin: 5px 0;"></div>
+            <div id="displayName" style="color: #333; margin: 5px 0;"></div>
             
             <a href="games.html" class="btn" id="gamesBtn">
                 🎲 Перейти к играм
@@ -147,92 +151,101 @@
         </div>
     </div>
 
-    <script type="text/python">
-        from browser import document, window, html
-        from browser.local_storage import storage
-        import json
+    <script>
+        // Ждем загрузки Google Identity Services
+        window.onload = function() {
+            checkSession();
+        };
         
-        def handle_credential_response(response):
-            """Обработка ответа от Google"""
-            # Декодируем JWT токен (в реальном проекте нужна верификация на сервере)
-            response_data = response.credential
-            user_data = decode_jwt(response_data)
+        // Функция обратного вызова от Google
+        function handleCredentialResponse(response) {
+            console.log("Google ответ получен!");
+            document.getElementById('loading').classList.add('active');
             
-            if user_data:
-                # Сохраняем данные пользователя
-                user_info = {
-                    'email': user_data.get('email', ''),
-                    'name': user_data.get('name', ''),
-                    'picture': user_data.get('picture', ''),
-                    'given_name': user_data.get('given_name', ''),
+            try {
+                // Декодируем JWT токен
+                const userData = parseJwt(response.credential);
+                console.log("Данные пользователя:", userData);
+                
+                // Сохраняем в localStorage
+                const userInfo = {
+                    email: userData.email,
+                    name: userData.name,
+                    picture: userData.picture,
+                    given_name: userData.given_name || userData.name
+                };
+                
+                localStorage.setItem('google_user', JSON.stringify(userInfo));
+                console.log("Данные сохранены в localStorage");
+                
+                // Показываем профиль
+                showUserInfo(userInfo);
+                
+                document.getElementById('loading').classList.remove('active');
+                
+            } catch (error) {
+                console.error("Ошибка при обработке входа:", error);
+                document.getElementById('loading').classList.remove('active');
+                alert("Ошибка входа. Проверьте консоль (F12)");
+            }
+        }
+        
+        // Декодирование JWT
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            
+            return JSON.parse(jsonPayload);
+        }
+        
+        // Показать информацию о пользователе
+        function showUserInfo(userData) {
+            console.log("Показываю профиль пользователя");
+            
+            // Скрываем секцию логина
+            document.getElementById('loginSection').classList.add('hidden');
+            
+            // Заполняем данные
+            document.getElementById('avatar').src = userData.picture;
+            document.getElementById('email').textContent = userData.email;
+            document.getElementById('displayName').textContent = 
+                'Привет, ' + (userData.given_name || userData.name) + '!';
+            
+            // Показываем секцию профиля
+            document.getElementById('userInfo').classList.add('active');
+        }
+        
+        // Проверка сохраненной сессии
+        function checkSession() {
+            const savedUser = localStorage.getItem('google_user');
+            if (savedUser) {
+                try {
+                    const userData = JSON.parse(savedUser);
+                    showUserInfo(userData);
+                } catch (e) {
+                    console.error("Ошибка чтения сессии:", e);
                 }
-                
-                storage['google_user'] = json.dumps(user_info)
-                show_user_info(user_info)
-                
-                # Скрываем загрузку
-                document['loading'].classList.remove('active')
+            }
+        }
         
-        def decode_jwt(token):
-            """Декодирование JWT токена (базовая версия)"""
-            try:
-                # Разделяем токен на части
-                parts = token.split('.')
-                if len(parts) != 3:
-                    return None
-                
-                # Декодируем payload (вторая часть)
-                import base64
-                payload = parts[1]
-                # Добавляем padding если нужно
-                payload += '=' * (4 - len(payload) % 4)
-                decoded = base64.b64decode(payload).decode('utf-8')
-                return json.loads(decoded)
-            except Exception as e:
-                print(f"Error decoding JWT: {e}")
-                return None
-        
-        def show_user_info(user_data):
-            """Отображение информации о пользователе"""
-            user_info_div = document['userInfo']
-            avatar_img = document['avatar']
-            email_div = document['email']
-            name_div = document['name']
+        // Выход
+        function logout() {
+            localStorage.removeItem('google_user');
             
-            avatar_img.src = user_data.get('picture', '')
-            email_div.text = user_data.get('email', '')
-            name_div.text = f"Привет, {user_data.get('given_name', user_data.get('name', 'Гость'))}!"
+            // Показываем секцию логина
+            document.getElementById('loginSection').classList.remove('hidden');
             
-            user_info_div.classList.add('active')
-        
-        def logout():
-            """Выход из системы"""
-            if 'google_user' in storage:
-                del storage['google_user']
+            // Скрываем профиль
+            document.getElementById('userInfo').classList.remove('active');
             
-            document['userInfo'].classList.remove('active')
-            # Перезагружаем страницу для сброса Google сессии
-            window.location.reload()
-        
-        # Проверяем, есть ли сохраненная сессия
-        def check_session():
-            if 'google_user' in storage:
-                try:
-                    user_data = json.loads(storage['google_user'])
-                    show_user_info(user_data)
-                except:
-                    pass
-        
-        # Инициализация при загрузке
-        document['loading'].classList.add('active')
-        
-        # Экспортируем функции в глобальную область видимости
-        window.handleCredentialResponse = handle_credential_response
-        window.logout = logout
-        
-        # Проверяем сессию
-        check_session()
-        document['loading'].classList.remove('active')
+            // Перезагружаем страницу для сброса Google
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
+        }
     </script>
 </body>
 </html>
