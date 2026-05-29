@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игры - Игровой портал</title>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython_stdlib.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .game-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .game-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            color: white;
+        }
+        
+        .game-info {
+            padding: 20px;
+        }
+        
+        .game-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .game-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .game-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+        
+        .game-features li {
+            color: #555;
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .game-features li:before {
+            content: "✓";
+            color: #667eea;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        
+        .download-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .download-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 25px;
+            text-decoration: none;
+            margin: 20px 0;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        
+        .download-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .close-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 Игровой портал</h1>
+        <div class="user-menu">
+            <img class="user-avatar" id="headerAvatar" src="" alt="Avatar">
+            <span id="headerName"></span>
+            <button class="btn btn-logout" onclick="logout()">Выйти</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>Доступные игры</h2>
+        
+        <div class="games-grid">
+            <!-- Карточка игры Sors -->
+            <div class="game-card">
+                <div class="game-image">
+                    🧩
+                </div>
+                <div class="game-info">
+                    <h3 class="game-title">Sors</h3>
+                    <p class="game-description">
+                        Увлекательная логическая игра-головоломка. Сортируй, комбинируй и решай задачи!
+                    </p>
+                    <ul class="game-features">
+                        <li>Более 50 уровней</li>
+                        <li>Красивая графика</li>
+                        <li>Развивает логику</li>
+                        <li>Регулярные обновления</li>
+                    </ul>
+                    <button class="download-btn" onclick="downloadGame('Sors')">
+                        🎮 Получить игру
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Здесь можно добавить больше игр -->
+        </div>
+    </div>
+    
+    <!-- Модальное окно для скачивания -->
+    <div class="modal" id="downloadModal">
+        <div class="modal-content">
+            <h3>🎉 Игра готова к скачиванию!</h3>
+            <p id="gameNameDisplay"></p>
+            <a class="download-link" id="downloadLink" href="#" target="_blank">
+                📥 Скачать игру
+            </a>
+            <p style="color: #666; margin-top: 15px;">
+                Файл будет загружен с официального репозитория GitHub
+            </p>
+            <button class="close-btn" onclick="closeModal()">Закрыть</button>
+        </div>
+    </div>
+
+    <script type="text/python">
+        from browser import document, window
+        from browser.local_storage import storage
+        import json
+        
+        # Конфигурация игр
+        GAMES = {
+            'Sors': {
+                'name': 'Sors',
+                'download_url': 'https://github.com/vvlasov891/Sors/releases/download/dasasdasd/Sors.zip',
+                'description': 'Логическая игра-головоломка Sors',
+                'version': '1.0.0'
+            }
+        }
+        
+        def check_auth():
+            """Проверка авторизации"""
+            if 'google_user' not in storage:
+                window.location.href = 'index.html'
+                return None
+            
+            try:
+                user_data = json.loads(storage['google_user'])
+                return user_data
+            except:
+                window.location.href = 'index.html'
+                return None
+        
+        def update_header(user_data):
+            """Обновление информации в шапке"""
+            if user_data:
+                document['headerAvatar'].src = user_data.get('picture', '')
+                document['headerName'].text = user_data.get('given_name', user_data.get('name', 'Пользователь'))
+        
+        def download_game(game_name):
+            """Обработка нажатия на кнопку скачивания"""
+            if game_name in GAMES:
+                game = GAMES[game_name]
+                document['gameNameDisplay'].text = game['description']
+                document['downloadLink'].href = game['download_url']
+                document['downloadModal'].classList.add('active')
+                
+                # Автоматически начинаем скачивание
+                window.open(game['download_url'], '_blank')
+        
+        def closeModal():
+            """Закрытие модального окна"""
+            document['downloadModal'].classList.remove('active')
+        
+        def logout():
+            """Выход из системы"""
+            if 'google_user' in storage:
+                del storage['google_user']
+            window.location.href = 'index.html'
+        
+        # Экспорт функций
+        window.download_game = download_game
+        window.downloadGame = download_game  # Для вызова из HTML
+        window.closeModal = closeModal
+        window.logout = logout
+        
+        # Инициализация страницы
+        user_data = check_auth()
+        if user_data:
+            update_header(user_data)
+    </script>
+</body>
+</html>
