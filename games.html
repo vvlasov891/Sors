@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Игры - Игровой портал</title>
-    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython_stdlib.js"></script>
     <style>
         * {
             margin: 0;
@@ -247,11 +245,8 @@
         <h2>Доступные игры</h2>
         
         <div class="games-grid">
-            <!-- Карточка игры Sors -->
             <div class="game-card">
-                <div class="game-image">
-                    🧩
-                </div>
+                <div class="game-image">🧩</div>
                 <div class="game-info">
                     <h3 class="game-title">Sors</h3>
                     <p class="game-description">
@@ -263,22 +258,22 @@
                         <li>Развивает логику</li>
                         <li>Регулярные обновления</li>
                     </ul>
-                    <button class="download-btn" onclick="downloadGame('Sors')">
+                    <button class="download-btn" onclick="downloadGame()">
                         🎮 Получить игру
                     </button>
                 </div>
             </div>
-            
-            <!-- Здесь можно добавить больше игр -->
         </div>
     </div>
     
-    <!-- Модальное окно для скачивания -->
+    <!-- Модальное окно -->
     <div class="modal" id="downloadModal">
         <div class="modal-content">
             <h3>🎉 Игра готова к скачиванию!</h3>
-            <p id="gameNameDisplay"></p>
-            <a class="download-link" id="downloadLink" href="#" target="_blank">
+            <p>Логическая игра-головоломка Sors</p>
+            <a class="download-link" 
+               href="https://github.com/vvlasov891/Sors/releases/download/dasasdasd/Sors.zip" 
+               target="_blank">
                 📥 Скачать игру
             </a>
             <p style="color: #666; margin-top: 15px;">
@@ -288,71 +283,46 @@
         </div>
     </div>
 
-    <script type="text/python">
-        from browser import document, window
-        from browser.local_storage import storage
-        import json
-        
-        # Конфигурация игр
-        GAMES = {
-            'Sors': {
-                'name': 'Sors',
-                'download_url': 'https://github.com/vvlasov891/Sors/releases/download/dasasdasd/Sors.zip',
-                'description': 'Логическая игра-головоломка Sors',
-                'version': '1.0.0'
+    <script>
+        // Проверка авторизации
+        function checkAuth() {
+            const userData = localStorage.getItem('google_user');
+            if (!userData) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            try {
+                const user = JSON.parse(userData);
+                document.getElementById('headerAvatar').src = user.picture;
+                document.getElementById('headerName').textContent = 
+                    user.given_name || user.name;
+            } catch (e) {
+                window.location.href = 'index.html';
             }
         }
         
-        def check_auth():
-            """Проверка авторизации"""
-            if 'google_user' not in storage:
-                window.location.href = 'index.html'
-                return None
-            
-            try:
-                user_data = json.loads(storage['google_user'])
-                return user_data
-            except:
-                window.location.href = 'index.html'
-                return None
+        // Скачать игру
+        function downloadGame() {
+            document.getElementById('downloadModal').classList.add('active');
+            window.open('https://github.com/vvlasov891/Sors/releases/download/dasasdasd/Sors.zip', '_blank');
+        }
         
-        def update_header(user_data):
-            """Обновление информации в шапке"""
-            if user_data:
-                document['headerAvatar'].src = user_data.get('picture', '')
-                document['headerName'].text = user_data.get('given_name', user_data.get('name', 'Пользователь'))
+        // Закрыть модальное окно
+        function closeModal() {
+            document.getElementById('downloadModal').classList.remove('active');
+        }
         
-        def download_game(game_name):
-            """Обработка нажатия на кнопку скачивания"""
-            if game_name in GAMES:
-                game = GAMES[game_name]
-                document['gameNameDisplay'].text = game['description']
-                document['downloadLink'].href = game['download_url']
-                document['downloadModal'].classList.add('active')
-                
-                # Автоматически начинаем скачивание
-                window.open(game['download_url'], '_blank')
+        // Выйти
+        function logout() {
+            localStorage.removeItem('google_user');
+            window.location.href = 'index.html';
+        }
         
-        def closeModal():
-            """Закрытие модального окна"""
-            document['downloadModal'].classList.remove('active')
-        
-        def logout():
-            """Выход из системы"""
-            if 'google_user' in storage:
-                del storage['google_user']
-            window.location.href = 'index.html'
-        
-        # Экспорт функций
-        window.download_game = download_game
-        window.downloadGame = download_game  # Для вызова из HTML
-        window.closeModal = closeModal
-        window.logout = logout
-        
-        # Инициализация страницы
-        user_data = check_auth()
-        if user_data:
-            update_header(user_data)
+        // Запуск при загрузке
+        window.onload = function() {
+            checkAuth();
+        };
     </script>
 </body>
 </html>
