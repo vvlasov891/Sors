@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игровой портал - Вход</title>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brython@3.11.2/brython_stdlib.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .user-info {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        .user-info.active {
+            display: block;
+        }
+        
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 10px auto;
+            border: 3px solid #667eea;
+        }
+        
+        .email {
+            color: #667eea;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-logout {
+            background: #e74c3c;
+        }
+        
+        .btn-logout:hover {
+            background: #c0392b;
+        }
+        
+        #g_id_signin {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .loading {
+            display: none;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎮</div>
+        <h1>Игровой портал</h1>
+        <p>Войдите через Google для доступа к играм</p>
+        
+        <!-- Google Sign-In кнопка -->
+        <div id="g_id_onload"
+             data-client_id="ТВОЙ_CLIENT_ID.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+        
+        <div class="loading" id="loading">Загрузка...</div>
+        
+        <!-- Профиль пользователя -->
+        <div class="user-info" id="userInfo">
+            <img class="avatar" id="avatar" src="" alt="Avatar">
+            <div class="email" id="email"></div>
+            <div id="name" style="color: #333; margin: 5px 0;"></div>
+            
+            <a href="games.html" class="btn" id="gamesBtn">
+                🎲 Перейти к играм
+            </a>
+            <button class="btn btn-logout" onclick="logout()">
+                Выйти
+            </button>
+        </div>
+    </div>
+
+    <script type="text/python">
+        from browser import document, window, html
+        from browser.local_storage import storage
+        import json
+        
+        def handle_credential_response(response):
+            """Обработка ответа от Google"""
+            # Декодируем JWT токен (в реальном проекте нужна верификация на сервере)
+            response_data = response.credential
+            user_data = decode_jwt(response_data)
+            
+            if user_data:
+                # Сохраняем данные пользователя
+                user_info = {
+                    'email': user_data.get('email', ''),
+                    'name': user_data.get('name', ''),
+                    'picture': user_data.get('picture', ''),
+                    'given_name': user_data.get('given_name', ''),
+                }
+                
+                storage['google_user'] = json.dumps(user_info)
+                show_user_info(user_info)
+                
+                # Скрываем загрузку
+                document['loading'].classList.remove('active')
+        
+        def decode_jwt(token):
+            """Декодирование JWT токена (базовая версия)"""
+            try:
+                # Разделяем токен на части
+                parts = token.split('.')
+                if len(parts) != 3:
+                    return None
+                
+                # Декодируем payload (вторая часть)
+                import base64
+                payload = parts[1]
+                # Добавляем padding если нужно
+                payload += '=' * (4 - len(payload) % 4)
+                decoded = base64.b64decode(payload).decode('utf-8')
+                return json.loads(decoded)
+            except Exception as e:
+                print(f"Error decoding JWT: {e}")
+                return None
+        
+        def show_user_info(user_data):
+            """Отображение информации о пользователе"""
+            user_info_div = document['userInfo']
+            avatar_img = document['avatar']
+            email_div = document['email']
+            name_div = document['name']
+            
+            avatar_img.src = user_data.get('picture', '')
+            email_div.text = user_data.get('email', '')
+            name_div.text = f"Привет, {user_data.get('given_name', user_data.get('name', 'Гость'))}!"
+            
+            user_info_div.classList.add('active')
+        
+        def logout():
+            """Выход из системы"""
+            if 'google_user' in storage:
+                del storage['google_user']
+            
+            document['userInfo'].classList.remove('active')
+            # Перезагружаем страницу для сброса Google сессии
+            window.location.reload()
+        
+        # Проверяем, есть ли сохраненная сессия
+        def check_session():
+            if 'google_user' in storage:
+                try:
+                    user_data = json.loads(storage['google_user'])
+                    show_user_info(user_data)
+                except:
+                    pass
+        
+        # Инициализация при загрузке
+        document['loading'].classList.add('active')
+        
+        # Экспортируем функции в глобальную область видимости
+        window.handleCredentialResponse = handle_credential_response
+        window.logout = logout
+        
+        # Проверяем сессию
+        check_session()
+        document['loading'].classList.remove('active')
+    </script>
+</body>
+</html>
